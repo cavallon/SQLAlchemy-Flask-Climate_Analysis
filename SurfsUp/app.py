@@ -11,7 +11,6 @@ from sqlalchemy import create_engine, func
 
 from flask import Flask, jsonify
 
-
 #################################################
 # Database Setup
 #################################################
@@ -47,8 +46,8 @@ def welcome():
         f"/api/v1.0/precipitation<br/>"
         f"/api/v1.0/station<br/>"
         f"/api/v1.0/tobs<br/>"
-        f"/api/v1.0/2016-08-18<br/>"
-        f"/api/v1.0/2016-08-18/2017-08-18"
+        f"/api/v1.0/type_start_date_here<br/>"
+        f"/api/v1.0/type_start_date/type_end_date"
     )
 
 
@@ -102,26 +101,33 @@ def tobs():
     #jsonify results
     return jsonify(all_temps)
 
-@app.route("/api/v1.0/2016-08-18")
-def start():
-    #query temp data with needed start date
-    temp_data = session.query(func.min(Measurement.tobs), func.max(Measurement.tobs), func.avg(Measurement.tobs)).\
-        filter(Measurement.date >= '2016-08-18').all()
+@app.route("/api/v1.0/<start>")
+def date(start):
+    #set start date from user input
+    start_date = dt.datetime.strptime(start, "%Y-%m-%d")
+
+    temp_data = session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)).\
+        filter(Measurement.date >= start_date).all()
+    
     
     session.close()
-    
+  
     # Convert list of tuples into normal list
     temp_range = list(np.ravel(temp_data))
 
     #jsonify results
     return jsonify(temp_range)
 
-@app.route("/api/v1.0/2016-08-18/2017-08-18")
-def startend():
-    #query temp with needed start and end dates
-    temp_range = session.query(func.min(Measurement.tobs), func.max(Measurement.tobs), func.avg(Measurement.tobs)).\
-        filter(Measurement.date >= '2016-08-18').\
-        filter(Measurement.date <= '2017-08-18').all()
+
+@app.route("/api/v1.0/<start>/<end>")
+def date_range(start,end):
+    #set start and end dates from user input
+    start_date = dt.datetime.strptime(start, "%Y-%m-%d")
+    end_date = dt.datetime.strptime(end, "%Y-%m-%d")
+    #calculate the min, avg, and max temps based on the date range input
+    temp_range = session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)).\
+        filter(Measurement.date >= start_date).\
+        filter(Measurement.date <= end_date).all()
     
     session.close()
     
@@ -130,6 +136,7 @@ def startend():
 
     #jsonify results
     return jsonify(temp_val)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
